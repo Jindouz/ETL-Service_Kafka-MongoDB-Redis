@@ -1,0 +1,6 @@
+kafka:
+  bootstrap_servers: "kafka-server:9092"
+  topic: "events-topic"
+reporter:
+  start_id: 1
+  increment: 1
