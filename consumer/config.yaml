@@ -2,3 +2,8 @@ kafka:
   bootstrap_servers: "kafka-server:9092"
   topic: "events-topic"
   group_id: "event-consumers"
+
+mongo:
+  uri: "mongodb://mongo:27017"
+  database: "kafka-events"
+  collection: "EVENTS"

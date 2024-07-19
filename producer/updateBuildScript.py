@@ -1,5 +1,3 @@
-print("Kafka producer container started successfully!")
-
 # Stops, Removes, Builds and Runs an updated Kafka producer container, remove dangling images
 
 import subprocess
