@@ -1,0 +1,4 @@
+dnspython==2.6.1
+pymongo==4.8.0
+PyYAML==6.0.1
+redis==5.0.7

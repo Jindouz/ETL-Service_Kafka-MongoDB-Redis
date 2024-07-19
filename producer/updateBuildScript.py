@@ -1,4 +1,4 @@
-# Stops, Removes, Builds and Runs an updated Kafka producer container, remove dangling images
+# Stops, Removes, Builds and Runs an updated Kafka producer container, removes dangling images
 
 import subprocess
 import time
