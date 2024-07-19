@@ -1,16 +1,40 @@
-from kafka import KafkaConsumer
+import json
+from confluent_kafka import Consumer, KafkaException
+import yaml
 
-def main():
-    consumer = KafkaConsumer(
-        'test-topic',
-        bootstrap_servers='localhost:9092',
-        auto_offset_reset='earliest',
-        enable_auto_commit=True,
-        group_id='my-group'
-    )
+class EventConsumer:
+    def __init__(self, config_path='config.yaml'):
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        self.consumer = Consumer({
+            'bootstrap.servers': config['kafka']['bootstrap_servers'],
+            'group.id': config['kafka']['group_id'],
+            'auto.offset.reset': 'earliest'
+        })
+        self.topic = config['kafka']['topic']
+        self.consumer.subscribe([self.topic])
 
-    for message in consumer:
-        print(f'Received: {message.decode("utf-8")}')
+    def consume_events(self):
+        try:
+            while True:
+                msg = self.consumer.poll(timeout=1.0)
+                if msg is None:
+                    continue
+                if msg.error():
+                    if msg.error().code() == KafkaError._PARTITION_EOF:
+                        continue
+                    else:
+                        raise KafkaException(msg.error())
+                else:
+                    event = json.loads(msg.value().decode('utf-8'))
+                    print(f"Consumed event from topic {msg.topic()}: {event}")
+
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.consumer.close()
+
 
 if __name__ == "__main__":
-    main()
+    event_consumer = EventConsumer()
+    event_consumer.consume_events()
