@@ -27,6 +27,6 @@ execute_docker_command("docker run -d --network=kafka-compose_kafka-network --na
 execute_docker_command('docker image prune -f --filter "dangling=true"')
 
 
-time.sleep(3)
+time.sleep(2)
 
 print("Kafka consumer container started successfully!")

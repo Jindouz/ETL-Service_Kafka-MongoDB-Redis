@@ -1,6 +1,9 @@
 import json
 from confluent_kafka import Consumer, KafkaException
+from pymongo import MongoClient
 import yaml
+from datetime import datetime
+import pytz
 
 class EventConsumer:
     def __init__(self, config_path='config.yaml'):
@@ -13,6 +16,11 @@ class EventConsumer:
         })
         self.topic = config['kafka']['topic']
         self.consumer.subscribe([self.topic])
+
+        # MongoDB setup
+        self.mongo_client = MongoClient(config['mongo']['uri'])
+        self.mongo_db = self.mongo_client[config['mongo']['database']]
+        self.mongo_collection = self.mongo_db[config['mongo']['collection']]
 
     def consume_events(self):
         try:
@@ -27,6 +35,8 @@ class EventConsumer:
                         raise KafkaException(msg.error())
                 else:
                     event = json.loads(msg.value().decode('utf-8'))
+                    event['timestamp'] = datetime.fromisoformat(event['timestamp'])
+                    self.mongo_collection.insert_one(event)
                     print(f"Consumed event from topic {msg.topic()}: {event}")
 
         except KeyboardInterrupt:

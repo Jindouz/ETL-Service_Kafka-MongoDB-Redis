@@ -26,7 +26,7 @@ class EventProducer:
         while True:
             event = {
                 "reporterId": self.reporter_id,
-                "timestamp": datetime.now(pytz.timezone('Israel')).strftime('%d-%m-%Y %H:%M:%S'),
+                "timestamp": datetime.now(pytz.utc).isoformat(),
                 "metricId": random.randint(1, 10),
                 "metricValue": random.randint(1, 100),
                 "message": "Hello World"
