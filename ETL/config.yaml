@@ -7,3 +7,6 @@ redis:
   host: "redis-server"
   port: 6379
   last_timestamp_key: "last_timestamp"
+
+etl:
+  max_entries: 5000
