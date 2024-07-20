@@ -19,8 +19,11 @@ class EventProducer:
             config = yaml.safe_load(f)
         self.producer = Producer({'bootstrap.servers': config['kafka']['bootstrap_servers']})
         self.topic = config['kafka']['topic']
-        self.reporter_id = config['reporter']['start_id']
-        self.increment = config['reporter']['increment']
+        self.reporter_id = config['producer']['start_id']
+        self.increment = config['producer']['increment']
+        self.message = config['producer']['message']
+        self.prod_poll = config['producer']['prod_poll']
+        self.sleep_time = config['producer']['sleep_time']
 
     def delivery_report(self, err, msg):
         """
@@ -41,12 +44,12 @@ class EventProducer:
                 "timestamp": datetime.now(pytz.utc).isoformat(),
                 "metricId": random.randint(1, 10),
                 "metricValue": random.randint(1, 100),
-                "message": "Hello World"
+                "message": self.message
             }
             self.producer.produce(self.topic, json.dumps(event), callback=self.delivery_report)
-            self.producer.poll(1)
+            self.producer.poll(self.prod_poll) # Wait for pending messages to be delivered before sending a new one
             self.reporter_id += self.increment
-            time.sleep(1)
+            time.sleep(self.sleep_time)
 
 
 if __name__ == "__main__":
