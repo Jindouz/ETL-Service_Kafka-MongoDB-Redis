@@ -1,9 +1,10 @@
-# Stops, Removes, Builds and Runs an updated Kafka consumer container, removes dangling images
+"""Stops, Removes, Builds and Runs an updated kafka-consumer container, removes dangling images"""
 
 import subprocess
 import time
 
 def execute_docker_command(command):
+    """Executes a docker command"""
     try:
         subprocess.run(command, shell=True, check=True)
     except subprocess.CalledProcessError as e:
@@ -12,16 +13,24 @@ def execute_docker_command(command):
 
 
 # Check if container exists
-container_exists = subprocess.run("docker ps -aq --filter name=kafka-consumer", capture_output=True, check=False).stdout.decode().strip()
+container_exists = (
+    subprocess.run("docker ps -aq --filter name=kafka-consumer", capture_output=True, check=False)
+    .stdout.decode() #decode bytes to string
+    .strip() #remove whitespace
+    )
+
 
 if container_exists:
-  # Stop and remove container if it exists
-  execute_docker_command("docker stop kafka-consumer")
-  execute_docker_command("docker rm kafka-consumer")
+    # Stop and remove container if it exists
+    execute_docker_command("docker stop kafka-consumer")
+    execute_docker_command("docker rm kafka-consumer")
 
 # Build and run the container
 execute_docker_command("docker build -t kafka-consumer .")
-execute_docker_command("docker run -d --network=kafka-compose_kafka-network --name kafka-consumer kafka-consumer")
+execute_docker_command(
+    "docker run -d --network=kafka-compose_kafka-network --name kafka-consumer kafka-consumer"
+    )
+
 
 # Prune dangling images
 execute_docker_command('docker image prune -f --filter "dangling=true"')
@@ -29,4 +38,4 @@ execute_docker_command('docker image prune -f --filter "dangling=true"')
 
 time.sleep(2)
 
-print("Kafka consumer container started successfully!")
+print("kafka-consumer container started successfully!")

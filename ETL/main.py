@@ -1,3 +1,6 @@
+""" 
+Extracts data from MongoDB, transforms it, and loads it to Redis (ETL process) 
+"""
 import json
 import time
 import threading
@@ -8,8 +11,14 @@ import yaml
 
 
 class MongoToRedisETL:
+    """
+    Fetches data from MongoDB, transforms it, and stores it in Redis.
+    """
     def __init__(self, config_path='config.yaml'):
-        with open(config_path, 'r') as f:
+        """
+        Initializes the ETL service with MongoDB and Redis connections, and configuration.
+        """
+        with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
             # MongoDB setup
@@ -25,46 +34,67 @@ class MongoToRedisETL:
             )
             self.redis_key = config['redis']['last_timestamp_key']
             self.max_entries = config['etl']['max_entries']
+            self.sleep_time = config['etl']['sleep_time']
+
 
     def get_last_timestamp(self):
+        """
+        Get the last processed timestamp (KEY:last_timestamp) from Redis (if it exists)
+        """
         last_timestamp = self.redis_client.get(self.redis_key)
         if last_timestamp:
             return datetime.strptime(last_timestamp, '%Y/%m/%d_%H:%M:%S')
-        else:
-            return None  # If no key, return None
+        return None  # If no key, return None
+
 
     def set_last_timestamp(self, timestamp):
+        """
+        Sets (and updates) the last processed timestamp in Redis.
+        """
         if isinstance(timestamp, str):
+            # if timestamp is a string, convert it to datetime object
             timestamp = datetime.strptime(timestamp, '%Y/%m/%d_%H:%M:%S')
         self.redis_client.set(self.redis_key, timestamp.strftime('%Y/%m/%d_%H:%M:%S'))
 
-    # Extract new events
+
     def extract_new_events(self, last_timestamp):
-        if not last_timestamp:  # No last timestamp (initial run or Redis wiped)
+        """
+        Extracts new events from MongoDB based on the last processed timestamp.
+        """
+        if not last_timestamp:  # If there is no last timestamp (initial run or Redis wiped)
             # Fetch entries sorted by timestamp (descending)
             query = {}
             sort_query = {'timestamp': -1}
-            return self.mongo_collection.find(query, sort=sort_query).limit(self.max_entries)
-        else:
-            # Fetch entries with timestamp greater than the last processed timestamp
-            query = {'timestamp': {'$gt': last_timestamp}}
-            return self.mongo_collection.find(query)
+            return self.mongo_collection.find(query, sort=sort_query).limit(self.max_entries) #avoids overfetching the entire database
+        # Fetch Mongo entries with timestamp that is greater than the last processed timestamp
+        query = {'timestamp': {'$gt': last_timestamp}} #gt is greater than
+        return self.mongo_collection.find(query)
 
-    # Transform events
+
     def transform_event(self, event):
+        """
+        Transforms a MongoDB event document for storage in Redis.
+        """
         event['_id'] = str(event['_id'])
-        event['timestamp'] = event['timestamp'].strftime('%Y/%m/%d_%H:%M:%S')
+        event['timestamp'] = event['timestamp'].strftime('%Y/%m/%d_%H:%M:%S') #strftime is used to convert datetime object to string
         reporter_id = event['reporterId']
         timestamp = event['timestamp']
         key = f"{reporter_id}:{timestamp}"
         value = json.dumps(event)
         return key, value
 
-    # Load events
+
     def load_to_redis(self, key, value):
+        """
+        Loads the transformed event data into a Redis key-value pair.
+        """
         self.redis_client.set(key, value)
 
+
     def run_etl(self):
+        """
+        Continuously extracts, transforms, and loads data from MongoDB to Redis.
+        """
         while True:
             last_timestamp = self.get_last_timestamp()
             # Extract
@@ -76,10 +106,10 @@ class MongoToRedisETL:
                 self.load_to_redis(key, value)
                 # Update last timestamp for future runs
                 self.set_last_timestamp(event['timestamp'])
-            time.sleep(30)
+            time.sleep(self.sleep_time)
 
 
 if __name__ == "__main__":
     etl = MongoToRedisETL()
-    etl_thread = threading.Thread(target=etl.run_etl)
+    etl_thread = threading.Thread(target=etl.run_etl) #threading allows the program to run multiple processes at the same time
     etl_thread.start()
