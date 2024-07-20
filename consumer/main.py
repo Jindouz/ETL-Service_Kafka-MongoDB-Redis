@@ -25,6 +25,7 @@ class EventConsumer:
         })
         self.topic = config['kafka']['topic']
         self.consumer.subscribe([self.topic])
+        self.poll_timeout = config['consumer']['poll_timeout']
 
         # MongoDB setup
         self.mongo_client = MongoClient(config['mongo']['uri'])
@@ -37,7 +38,7 @@ class EventConsumer:
         """
         try:
             while True:
-                msg = self.consumer.poll(timeout=1.0)
+                msg = self.consumer.poll(timeout=self.poll_timeout) # message polling at the specified frequency
                 if msg is None:
                     continue
                 if msg.error():

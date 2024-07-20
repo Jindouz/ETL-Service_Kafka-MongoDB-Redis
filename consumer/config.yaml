@@ -7,3 +7,6 @@ mongo:
   uri: "mongodb://mongo:27017"
   database: "kafka-events"
   collection: "EVENTS"
+
+consumer:
+  poll_timeout: 1.0
