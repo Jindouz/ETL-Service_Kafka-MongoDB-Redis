@@ -37,7 +37,10 @@ class MongoToRedisETL:
             )
             self.redis_key = config['redis']['last_timestamp_key']
             self.max_entries = config['etl']['max_entries']
+            self.max_entries_gt = config['etl']['max_entries_gt']
             self.sleep_time = config['etl']['sleep_time']
+            self.event_count = config['etl']['event_count']
+            self.event_count_incr = config['etl']['event_count_incr']
 
 
     def get_last_timestamp(self):
@@ -50,28 +53,20 @@ class MongoToRedisETL:
         return None  # If no key, return None
 
 
-    def set_last_timestamp(self, timestamp):
-        """
-        Sets (and updates) the last processed timestamp in Redis.
-        """
-        if isinstance(timestamp, str):
-            # if timestamp is a string, convert it to datetime object
-            timestamp = datetime.strptime(timestamp, '%Y/%m/%d_%H:%M:%S')
-        self.redis_client.set(self.redis_key, timestamp.strftime('%Y/%m/%d_%H:%M:%S'))
-
-
     def extract_new_events(self, last_timestamp):
         """
         Extracts new events from MongoDB based on the last processed timestamp.
         """
         if not last_timestamp:  # If there is no last timestamp (initial run or Redis wiped)
-            # Fetch entries sorted by timestamp (descending)
+            # Find every entry {} and fetch data limited to max_entries
             query = {}
-            sort_query = {'timestamp': -1}
-            return self.mongo_collection.find(query, sort=sort_query).limit(self.max_entries) #avoids overfetching the entire database
+            return self.mongo_collection.find(query).limit(self.max_entries)
+        
         # Fetch Mongo entries with timestamp that is greater than the last processed timestamp
-        query = {'timestamp': {'$gt': last_timestamp}} #gt is greater than
-        return self.mongo_collection.find(query)
+        query = {'timestamp': {'$gt': last_timestamp}}
+        # Fetch entries from last_timestamp up to max_entries_gt
+        new_events = self.mongo_collection.find(query).limit(self.max_entries_gt)
+        return new_events
 
 
     def transform_event(self, event):
@@ -88,14 +83,6 @@ class MongoToRedisETL:
         return key, value
 
 
-    def load_to_redis(self, key, value):
-        """
-        Loads the transformed event data into a Redis key-value pair.
-        """
-        self.redis_client.set(key, value)
-        self.redis_client.zadd('last_timestamp_set', {key: time.time()})
-
-
     def run_etl(self):
         """
         Continuously extracts, transforms, and loads data from MongoDB to Redis.
@@ -104,15 +91,19 @@ class MongoToRedisETL:
             last_timestamp = self.get_last_timestamp()
             # Extract
             new_events = self.extract_new_events(last_timestamp)
-            event_count = 0  # logger event count
+            event_count = self.event_count  # logger event count
+            key_value_pairs = {}  # dictionary to hold all key-value pairs for MSET
             for event in new_events:
                 # Transform
                 key, value = self.transform_event(event)
-                # Load
-                self.load_to_redis(key, value)
+                key_value_pairs[key] = value
                 # Update last timestamp for future runs
-                self.set_last_timestamp(event['timestamp'])
-                event_count += 1  # Increment logger event counter
+                last_event_timestamp = event['timestamp']
+                event_count += self.event_count_incr  # Increment logger event counter
+            # Load all key-value pairs to Redis atomically
+            if key_value_pairs:
+                key_value_pairs[self.redis_key] = last_event_timestamp
+                self.redis_client.mset(key_value_pairs)
             # Logs the amount of documents pulled per loop
             logging.info("Documents pulled in this loop: %s", event_count)
             time.sleep(self.sleep_time)

@@ -24,6 +24,10 @@ class EventProducer:
         self.message = config['producer']['message']
         self.prod_poll = config['producer']['prod_poll']
         self.sleep_time = config['producer']['sleep_time']
+        self.metricValue_min = config['producer']['metricValue_min']
+        self.metricValue_max = config['producer']['metricValue_max']
+        self.metricId_min = config['producer']['metricId_min']
+        self.metricId_max = config['producer']['metricId_max']
 
     def delivery_report(self, err, msg):
         """
@@ -42,8 +46,8 @@ class EventProducer:
             event = {
                 "reporterId": self.reporter_id,
                 "timestamp": datetime.now(pytz.utc).isoformat(),
-                "metricId": random.randint(1, 10),
-                "metricValue": random.randint(1, 100),
+                "metricId": random.randint(self.metricId_min, self.metricId_max),
+                "metricValue": random.randint(self.metricValue_min, self.metricValue_max),
                 "message": self.message
             }
             self.producer.produce(self.topic, json.dumps(event), callback=self.delivery_report)

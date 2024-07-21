@@ -8,3 +8,8 @@ producer:
   message: "Hello World"
   prod_poll: 1
   sleep_time: 1
+  metricValue_min: 1
+  metricValue_max: 100
+  metricId_min: 1
+  metricId_max: 10
+
