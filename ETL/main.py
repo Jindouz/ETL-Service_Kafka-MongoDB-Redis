@@ -4,11 +4,14 @@ Extracts data from MongoDB, transforms it, and loads it to Redis (ETL process)
 import json
 import time
 import threading
+import logging
 from datetime import datetime
 from pymongo import MongoClient
 import redis
 import yaml
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class MongoToRedisETL:
     """
@@ -76,7 +79,8 @@ class MongoToRedisETL:
         Transforms a MongoDB event document for storage in Redis.
         """
         event['_id'] = str(event['_id'])
-        event['timestamp'] = event['timestamp'].strftime('%Y/%m/%d_%H:%M:%S') #strftime is used to convert datetime object to string
+        #strftime is used to convert datetime object to string
+        event['timestamp'] = event['timestamp'].strftime('%Y/%m/%d_%H:%M:%S')
         reporter_id = event['reporterId']
         timestamp = event['timestamp']
         key = f"{reporter_id}:{timestamp}"
@@ -89,6 +93,7 @@ class MongoToRedisETL:
         Loads the transformed event data into a Redis key-value pair.
         """
         self.redis_client.set(key, value)
+        self.redis_client.zadd('last_timestamp_set', {key: time.time()})
 
 
     def run_etl(self):
@@ -99,6 +104,7 @@ class MongoToRedisETL:
             last_timestamp = self.get_last_timestamp()
             # Extract
             new_events = self.extract_new_events(last_timestamp)
+            event_count = 0  # logger event count
             for event in new_events:
                 # Transform
                 key, value = self.transform_event(event)
@@ -106,10 +112,14 @@ class MongoToRedisETL:
                 self.load_to_redis(key, value)
                 # Update last timestamp for future runs
                 self.set_last_timestamp(event['timestamp'])
+                event_count += 1  # Increment logger event counter
+            # Logs the amount of documents pulled per loop
+            logging.info("Documents pulled in this loop: %s", event_count)
             time.sleep(self.sleep_time)
 
 
 if __name__ == "__main__":
     etl = MongoToRedisETL()
-    etl_thread = threading.Thread(target=etl.run_etl) #threading allows the program to run multiple processes at the same time
+    #threading allows the program to run multiple processes at the same time
+    etl_thread = threading.Thread(target=etl.run_etl)
     etl_thread.start()
