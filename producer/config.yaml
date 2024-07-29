@@ -6,7 +6,6 @@ producer:
   start_id: 1
   increment: 1
   message: "Hello World"
-  prod_poll: 1
   sleep_time: 1
   metricValue_min: 1
   metricValue_max: 100
