@@ -1,7 +1,8 @@
 kafka:
   bootstrap_servers: "kafka-server:9092"
   topic: "events-topic"
-  group_id: "event-consumers"
+  group_id: "event-consumers-group"
+  offset_reset: "earliest"
 
 mongo:
   uri: "mongodb://mongo:27017"
