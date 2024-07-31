@@ -3,7 +3,7 @@ EventFactory class responsible for generating random events.
 """
 import random
 import yaml
-from event import Event
+from .event import Event
 
 
 class EventFactory:
@@ -15,18 +15,18 @@ class EventFactory:
             self.config = yaml.safe_load(f)
 
         self.reporter_id = self.config['producer']['start_id']
-        self.increment = self.config['producer']['increment']
         self.message = self.config['producer']['message']
 
         self.metric_value_min = self.config['producer']['metricValue_min']
         self.metric_value_max = self.config['producer']['metricValue_max']
         self.metric_id_min = self.config['producer']['metricId_min']
         self.metric_id_max = self.config['producer']['metricId_max']
+        self.increment = self.config['producer']['increment']
 
     def create_event(self):
         """
         Creates an event with random metric values, reporter ID, and message.
-        Puts the event object in a dictionary format and returns it. (with a timestamp)
+        Puts the event object in a dictionary format and returns it. (with a current timestamp)
         """
         # Create an event object
         event = Event(

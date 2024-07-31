@@ -6,7 +6,7 @@ import logging
 import time
 import yaml
 from confluent_kafka import Producer
-from event_factory import EventFactory
+from modules.event_factory import EventFactory
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -30,8 +30,10 @@ class EventProducer:
         while True:
             # Use the event factory to create a random event (output is a dictionary)
             event = self.event_factory.create_event()
-            # Serialize the event into JSON (as string pairs) and send it to the Kafka topic (in binary format)
+            # Serialize the event into JSON (as string pairs) and send it to the Kafka topic 
+            # (in binary format) using the confluent_kafka Driver.
             self.producer.produce(self.topic, json.dumps(event))
+            logging.info(f"Event with reporterId[{event['reporterId']}] sent to topic {self.topic}")
             time.sleep(self.sleep_time)
 
 if __name__ == "__main__":
