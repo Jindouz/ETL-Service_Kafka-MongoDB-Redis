@@ -1,5 +1,7 @@
 # Kafka to MongoDB to Redis ETL Service
 
+[![Screenshot](https://i.imgur.com/zYYeBee.png)](https://i.imgur.com/zYYeBee.png)
+
 ## Overview
 
 This project implements an ETL (Extract, Transform, Load) pipeline using multiple microservices, each encapsulated in Docker containers.  
