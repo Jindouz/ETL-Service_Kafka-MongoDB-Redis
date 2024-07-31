@@ -12,5 +12,6 @@ etl:
   max_entries: 5000
   max_entries_gt: 3000
   sleep_time: 30
-  event_count: 0
+  event_count: -1
   event_count_incr: 1
+  pairs_dict: {}
