@@ -45,28 +45,22 @@ class EventConsumer:
         """
         Continuously polls for messages from the Kafka topic and writes them to MongoDB.
         """
-        try:
-            while True:
-                # Consumes a message, checks for errors and return events (which are JSON strings) and sets an offset automatically
-                msg = self.consumer.poll(timeout=self.poll_timeout) # Check for messages and errors for 1 second (blocking call)
-                if msg is None:
-                    continue # If no message, skips to the next loop iteration
-                if msg.error():
-                    raise KafkaException(msg.error())
-                
-                # Deserializes the event message (from JSON string) into a Python dictionary
-                event = json.loads(msg.value().decode('utf-8'))
-                # Makes sure that the timestamp string is in the correct format for MongoDB (datetime object in ISO 8601)
-                event['timestamp'] = datetime.fromisoformat(event['timestamp'])
+        while True:
+            # Consumes a message, checks for errors and return events (which are JSON strings) and sets an offset automatically
+            msg = self.consumer.poll(timeout=self.poll_timeout) # Check for messages and errors for 1 second (blocking call)
+            if msg is None:
+                continue # If no message, skips to the next loop iteration (timeout reached, blocking call)
+            if msg.error():
+                raise KafkaException(msg.error())
+            
+            # Deserializes the event message (from serialized JSON) into a Python dictionary
+            event = json.loads(msg.value().decode('utf-8'))
+            # Makes sure that the timestamp string is in the correct format for MongoDB (datetime object in ISO 8601)
+            event['timestamp'] = datetime.fromisoformat(event['timestamp'])
 
-                # Inserts the event into the MongoDB collection as BSON (binary JSON) using the PyMongo Driver
-                self.mongo_collection.insert_one(event)
-                logging.info("Consumed event from topic %s: %s", msg.topic(), event)
-
-        except KeyboardInterrupt:
-            pass
-        finally:
-            self.consumer.close()
+            # Inserts the event into the MongoDB collection as BSON (binary JSON) using the PyMongo Driver
+            self.mongo_collection.insert_one(event)
+            logging.info("Consumed event from topic %s: %s", msg.topic(), event)
 
 
 if __name__ == "__main__":
