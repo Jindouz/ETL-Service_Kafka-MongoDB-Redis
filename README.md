@@ -1,6 +1,6 @@
 # Kafka to MongoDB to Redis ETL Service
 
-[![Screenshot](https://i.imgur.com/zYYeBee.png)](https://i.imgur.com/zYYeBee.png)
+[![Screenshot](https://i.imgur.com/T3B5jAv.png)](https://i.imgur.com/T3B5jAv.png)
 
 ## Overview
 
